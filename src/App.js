@@ -1,10 +1,10 @@
+// Importation des dépendances nécessaires
 import { useReducer } from 'react';
 import DigitButton from './DigitButton';
 import OperationButton from './OperationButton';
-import logo from './logo.svg';
 import './styles.css';
 
-
+// Définition des actions possibles pour le réducteur
 export const ACTIONS = {
   ADD_DIGIT: 'add-digit',
   CHOOSE_OPERATION: 'choose-operation',
@@ -13,9 +13,11 @@ export const ACTIONS = {
   EVALUATE: 'evaluate',
 }
 
+// Fonction réducteur qui traite les actions et met à jour l'état
 function reducer(state, {type, payload}) {
   switch(type) {
     case ACTIONS.ADD_DIGIT:
+      // Si on doit écraser l'opérande actuel
       if (state.overwrite) {
         return {
           ...state,
@@ -23,123 +25,128 @@ function reducer(state, {type, payload}) {
           overwrite: false,
         }
       }
-      if (payload.digit === "0" && state.currentOperand === "0") { 
-        return state
-      }
-      if (payload.digit === "." && state.currentOperand.includes(".")) {
-      return state 
-    }
+      // Gestion des cas spécifiques pour l'ajout de chiffres et de points
+      if (payload.digit === "0" && state.currentOperand === "0") return state;
+      if (payload.digit === "." && state.currentOperand.includes(".")) return state;
+
       return {
         ...state,
-        currentOperand: `${state.currentOperand || "" }${payload.digit}`
+        currentOperand: `${state.currentOperand || ""}${payload.digit}`
       }
-      case ACTIONS.CHOOSE_OPERATION:
-        if (state.currentOperand == null && state.previousOperand == null) {
-          return state
-        }
 
-        if (state.currentOperand == null) {
-          return {
-            ...state,
-            operation: payload.operation,
-          }
-        }
+    case ACTIONS.CHOOSE_OPERATION:
+      // Traite les différents cas lors du choix d'une opération
+      if (state.currentOperand == null && state.previousOperand == null) return state;
 
-        if (state.previousOperand == null) {
-          return {
-            ...state,
-            operation: payload.operation,
-            previousOperand: state.currentOperand,
-            currentOperand: null,
-          }
-        }
-
+      if (state.currentOperand == null) {
         return {
           ...state,
-          previousOperand: evaluate(state),
           operation: payload.operation,
-          currentOperand: null
         }
-      case ACTIONS.CLEAR:
-      return{}
+      }
 
-      case ACTIONS.DELETE_DIGIT:
-        if (state.overwrite) {
+      if (state.previousOperand == null) {
+        return {
+          ...state,
+          operation: payload.operation,
+          previousOperand: state.currentOperand,
+          currentOperand: null,
+        }
+      }
+
+      return {
+        ...state,
+        previousOperand: evaluate(state),
+        operation: payload.operation,
+        currentOperand: null
+      }
+
+    case ACTIONS.CLEAR:
+      // Réinitialise tout l'état
+      return {}
+
+    case ACTIONS.DELETE_DIGIT:
+      // Supprime le dernier chiffre saisi
+      if (state.overwrite) {
         return {
           ...state,
           overwrite: false,
           currentOperand: null,
-          } 
         }
+      }
 
-        if (state.currentOperand == null) return state
-        if (state.currentOperand.lenght === 1) {
-          return { ...state, currentOperand: null}
-        }
+      if (state.currentOperand == null) return state;
+      if (state.currentOperand.length === 1) {
+        return { ...state, currentOperand: null}
+      }
 
-        return {
-          ...state,
-          currentOperand: state.currentOperand.slice(0, -1)
-        }
+      return {
+        ...state,
+        currentOperand: state.currentOperand.slice(0, -1)
+      }
 
-      case ACTIONS.EVALUATE:
-        if (state.operation == null ||
-           state.currentOperand == null ||
-           state.previousOperand == null
-           ) {
-            return state
-           }
+    case ACTIONS.EVALUATE:
+      // Évalue l'expression actuelle
+      if (state.operation == null ||
+         state.currentOperand == null ||
+         state.previousOperand == null
+      ) {
+        return state;
+      }
 
-           return {
-            ...state,
-            overwrite: true,
-            previousOperand: null,
-            operation: null,
-            currentOperand: evaluate(state),
-           }
+      return {
+        ...state,
+        overwrite: true,
+        previousOperand: null,
+        operation: null,
+        currentOperand: evaluate(state),
+      }
   }
 }
 
-function evaluate ({ currentOperand, previousOperand, operation}) {
-  const prev = parseFloat(previousOperand)
-  const current = parseFloat(currentOperand)
-  if (isNaN(prev) || isNaN(current)) return ""
-  let computation = ""
+// Fonction pour évaluer les expressions arithmétiques
+function evaluate({ currentOperand, previousOperand, operation}) {
+  const prev = parseFloat(previousOperand);
+  const current = parseFloat(currentOperand);
+  if (isNaN(prev) || isNaN(current)) return "";
+  let computation = "";
   switch (operation) {
     case "+":
-      computation = prev + current
-      break 
+      computation = prev + current;
+      break;
     case "-":
-      computation = prev - current
-      break
+      computation = prev - current;
+      break;
     case "*":
-      computation = prev * current
-      break
+      computation = prev * current;
+      break;
     case "÷":
-      computation = prev / current
-      break
+      computation = prev / current;
+      break;
   }
 
-  return computation.toString()
+  return computation.toString();
 }
 
+// Formatter pour afficher les nombres entiers
 const INTEGER_FORMATTER = new Intl.NumberFormat("en-us", {
   maximumFractionDigits: 0,
-})
+});
 
+// Fonction pour formater les opérandes
 function formatOperand(operand) {
-  if (operand == null) return
-  const [integer, decimal] = operand.split('.')
-  if (decimal == null) return INTEGER_FORMATTER.format(integer)
-  return `${INTEGER_FORMATTER.format(integer)}.${decimal}`
+  if (operand == null) return;
+  const [integer, decimal] = operand.split('.');
+  if (decimal == null) return INTEGER_FORMATTER.format(integer);
+  return `${INTEGER_FORMATTER.format(integer)}.${decimal}`;
 }
 
+// Composant principal de l'application
 function App() {
-
+  // Utilisation du réducteur pour gérer l'état local
   const [{currentOperand, previousOperand, operation}, dispatch] = useReducer(
-    reducer, 
-    {}
-  )
+    reducer, {}
+    );
 
 
   return (
